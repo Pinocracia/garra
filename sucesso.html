@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Garra — a sua licença</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0E0C0F">
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<script src="config.js"></script>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="index.html" aria-label="Garra, início"><img src="img/logo.svg" alt="" width="30" height="30"><span>garra</span></a>
+</header>
+
+<main class="done">
+  <h1 id="titulo">A preparar a sua licença…</h1>
+  <p class="lead" id="sub">Estamos a confirmar o pagamento com o Stripe. Leva só uns segundos.</p>
+
+  <div class="keycard" id="card">
+    <div class="spin" aria-hidden="true"></div>
+  </div>
+
+  <div class="downloads">
+    <a class="textlink" href="downloads/Garra_Hub.zip" download>Descarregar o Garra Hub (Windows)</a>
+    <a class="textlink" href="downloads/Garra.apk" download>Descarregar a app Android</a>
+  </div>
+</main>
+
+<footer class="end">
+  <div class="end-row">
+    <a href="index.html">Página inicial</a>
+    <a href="privacidade.html">Política de privacidade</a>
+    <span id="sup"></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var G = window.GARRA || {};
+  var card = document.getElementById('card'), titulo = document.getElementById('titulo'), sub = document.getElementById('sub');
+  var sup = G.suporte ? 'Dúvidas: ' + G.suporte : '';
+  document.getElementById('sup').textContent = sup;
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  var sid = new URLSearchParams(location.search).get('session_id') || '';
+  var saved = null; try { saved = JSON.parse(localStorage.getItem('garra.licenca.' + sid) || 'null'); } catch (e) { }
+
+  function showKey(j) {
+    titulo.textContent = 'Obrigado' + (j.name ? ', ' + j.name.split(' ')[0] : '') + '!';
+    sub.textContent = 'O pagamento foi confirmado. Esta é a sua chave do Garra: guarde-a bem.';
+    card.innerHTML = '';
+    card.appendChild(el('h2', null, 'A sua chave'));
+    var kv = el('div', 'keyval', j.key); card.appendChild(kv);
+    var row = el('div', 'keyrow');
+    var copy = el('button', 'btn', 'Copiar chave'); var msg = el('span', 'keymsg', '');
+    copy.onclick = function () {
+      var done = function () { msg.textContent = 'Copiada! Agora cole-a na app.'; };
+      if (navigator.clipboard) navigator.clipboard.writeText(j.key).then(done, function () { msg.textContent = 'Selecione a chave e copie.'; });
+      else msg.textContent = 'Selecione a chave e copie.';
+    };
+    var mail = el('a', 'textlink', 'Enviar para o meu e-mail');
+    mail.href = 'mailto:' + encodeURIComponent(j.email || '') + '?subject=' + encodeURIComponent('A minha chave do Garra') + '&body=' + encodeURIComponent('Chave do Garra:\n' + j.key + '\n\nNa app: Ajustes > Licença > Já tenho uma chave.');
+    row.appendChild(copy); row.appendChild(mail); row.appendChild(msg); card.appendChild(row);
+    var ol = el('ol');
+    ['Abra o Garra no telemóvel.', 'Toque na engrenagem (Ajustes) › Licença › Já tenho uma chave. Se o teste já acabou, a app mostra logo o campo da chave.', 'Cole a chave e toque em Ativar. Pronto, é para sempre.'].forEach(function (t) { ol.appendChild(el('li', null, t)); });
+    card.appendChild(ol);
+    card.appendChild(el('p', 'fine', 'Licença ' + j.id + '. A mesma chave funciona em todos os seus aparelhos. Pode voltar a esta página quando quiser para ver a chave de novo.'));
+  }
+  function showErr(text, pending) {
+    titulo.textContent = pending ? 'Pagamento a aguardar confirmação' : 'Não conseguimos mostrar a chave';
+    sub.textContent = text;
+    card.innerHTML = '';
+    var row = el('div', 'keyrow');
+    var again = el('button', 'btn', 'Tentar de novo'); again.onclick = function () { location.reload(); };
+    row.appendChild(again); card.appendChild(row);
+    card.appendChild(el('p', 'fine' + (pending ? '' : ' state-bad'), pending ? 'Guarde o endereço desta página. Assim que o pagamento for confirmado, a chave aparece aqui.' : 'Se já pagou, escreva para ' + (G.suporte || 'o suporte') + ' com o e-mail da compra e enviamos a chave.'));
+  }
+  if (saved && saved.key) { showKey(saved); return; }
+  if (!sid) { showErr('Esta página abre sozinha depois do pagamento. Se já pagou e chegou aqui por outro caminho, fale connosco.', false); return; }
+  fetch((G.licencaApi || '') + '/licenca?session_id=' + encodeURIComponent(sid))
+    .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+    .then(function (x) {
+      if (x.j && x.j.ok && x.j.key) { try { localStorage.setItem('garra.licenca.' + sid, JSON.stringify(x.j)); } catch (e) { } showKey(x.j); }
+      else showErr((x.j && x.j.error) || 'Erro inesperado.', !!(x.j && x.j.pending));
+    })
+    .catch(function () { showErr('Sem ligação ao servidor de licenças. Verifique a internet e tente de novo.', false); });
+})();
+</script>
+</body>
+</html>
