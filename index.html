@@ -240,7 +240,10 @@
   tabs.forEach(function (t) { t.addEventListener('click', function () { pick(t.dataset.k); }); });
   Object.keys(shots).forEach(function (k) { var i = new Image(); i.src = shots[k]; });
   var G = window.GARRA || {};
-  document.querySelectorAll('[data-buy]').forEach(function (a) { if (G.buyUrl) a.href = G.buyUrl; });
+  // origem da visita (?ref=twitch, tiktok, nome do streamer...) vai com a compra para a Stripe
+  var ref = '';
+  try { ref = (new URLSearchParams(location.search).get('ref') || localStorage.getItem('garra.ref') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40); if (ref) localStorage.setItem('garra.ref', ref); } catch (e) { }
+  document.querySelectorAll('[data-buy]').forEach(function (a) { if (G.buyUrl) a.href = G.buyUrl + (ref ? (G.buyUrl.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(ref) : ''); });
   document.querySelectorAll('[data-preco]').forEach(function (e) { if (G.preco) e.textContent = G.preco; });
   document.querySelectorAll('[data-suporte]').forEach(function (a) { if (G.suporte) { a.href = 'mailto:' + G.suporte; a.textContent = G.suporte; } });
   // entrada suave das seções (o conteúdo nunca fica escondido sem script)
